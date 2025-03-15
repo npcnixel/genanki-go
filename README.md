@@ -5,7 +5,7 @@ A Go library for generating Anki decks programmatically. This is a port of the P
 ## Installation
 
 ```bash
-go get github.com/yourusername/genanki-go
+go get github.com/npcnixel/genanki-go
 ```
 
 ## Features
@@ -31,7 +31,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/yourusername/genanki-go/pkg/genanki"
+	"github.com/npcnixel/genanki-go/pkg/genanki"
 )
 
 func main() {
