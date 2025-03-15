@@ -13,7 +13,7 @@ go get github.com/npcnixel/genanki-go
 - Create Anki decks programmatically
 - Support for basic card types
 - Support for cloze deletion cards
-- Include media files (images, audio)
+- Include media files (images, audio) (TODO)
 - Generate Anki-compatible .apkg files
 - Compatible with Anki 25.02 and newer versions
 
