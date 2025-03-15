@@ -114,13 +114,6 @@ See the `examples` directory for complete examples:
 - `examples/basic_example`: Simple example creating a basic deck
 - `examples/advanced_example`: Advanced example demonstrating cloze deletions and media
 
-## Recent Changes
-
-- Removed generation of `collection.anki21b` file to ensure compatibility with Anki 25.02
-- Simplified package structure to match the original Python implementation
-- Improved media file handling
-- Removed unnecessary dependencies
-
 ## License
 
 [MIT License](LICENSE)
