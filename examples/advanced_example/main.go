@@ -212,7 +212,7 @@ func main() {
 	pkg.AddMedia("sample_image.png", imageData)
 	log.Println("Added generated image to package")
 
-	// Ensure output directory exists
+	// Ensure output directory exists at same level as example directories
 	outputDir := filepath.Join("..", "output")
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)

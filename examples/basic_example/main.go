@@ -66,11 +66,13 @@ func main() {
 		log.Printf("Warning: Failed to verify database content: %v", err)
 	}
 
+	// Ensure output directory exists at same level as example directories
 	outputDir := filepath.Join("..", "output")
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 
+	// Write package to file in the output directory
 	outputPath := filepath.Join(outputDir, "basic_deck.apkg")
 	if err := pkg.WriteToFile(outputPath); err != nil {
 		log.Fatalf("Failed to write package: %v", err)
