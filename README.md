@@ -35,7 +35,7 @@ func main() {
     deck := genanki.StandardDeck("My Deck", "A deck for testing")
 
     // Create a note
-    note := genanki.NewNote(model, []string{"What is the capital of France?", "Paris"})
+    note := genanki.NewNote(model.ID, []string{"What is the capital of France?", "Paris"}, []string{"geography"})
     
     // Add note to deck
     deck.AddNote(note)
@@ -44,7 +44,7 @@ func main() {
     pkg := genanki.NewPackage([]*genanki.Deck{deck})
     
     // Add the model to the package
-    pkg.AddModel(model)
+    pkg.AddModel(model.Model)
     
     // Write the package to a file
     pkg.WriteToFile("output.apkg")
@@ -72,6 +72,10 @@ deck := genanki.StandardDeck("My Deck", "A deck for testing")
 // Create a package
 pkg := genanki.NewPackage([]*genanki.Deck{deck})
 
+// Add models to the package
+pkg.AddModel(basicModel.Model)
+pkg.AddModel(clozeModel.Model)
+
 // Add an image file
 imageData, _ := ioutil.ReadFile("image.jpg")
 pkg.AddMedia("image.jpg", imageData)
@@ -85,10 +89,10 @@ pkg.AddMedia("audio.mp3", audioData)
 
 ```go
 // Create a cloze note
-note := genanki.NewNote(clozeModel, []string{
+note := genanki.NewNote(clozeModel.ID, []string{
     "The capital of France is {{c1::Paris}}.",
     "The capital of Spain is {{c1::Madrid}}.",
-})
+}, []string{"geography"})
 ```
 
 ## Contributing
