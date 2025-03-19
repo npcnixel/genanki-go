@@ -192,3 +192,42 @@ func TestSetCSS(t *testing.T) {
 		t.Errorf("Expected CSS to be '%s', got '%s'", customCSS, model.CSS)
 	}
 }
+
+// Test the convenience functions that use standard IDs
+func TestConvenienceFunctions(t *testing.T) {
+	// Test StandardBasicModel
+	basicModel := genanki.StandardBasicModel("Standard Basic")
+	if basicModel.ID != 1607392319 {
+		t.Errorf("Expected StandardBasicModel to use ID 1607392319, got %d", basicModel.ID)
+	}
+	if basicModel.Name != "Standard Basic" {
+		t.Errorf("Expected name to be 'Standard Basic', got %s", basicModel.Name)
+	}
+	if len(basicModel.Fields) != 2 || basicModel.Fields[0].Name != "Front" || basicModel.Fields[1].Name != "Back" {
+		t.Errorf("StandardBasicModel has incorrect fields")
+	}
+
+	// Test StandardClozeModel
+	clozeModel := genanki.StandardClozeModel("Standard Cloze")
+	if clozeModel.ID != 1122334455 {
+		t.Errorf("Expected StandardClozeModel to use ID 1122334455, got %d", clozeModel.ID)
+	}
+	if clozeModel.Name != "Standard Cloze" {
+		t.Errorf("Expected name to be 'Standard Cloze', got %s", clozeModel.Name)
+	}
+	if len(clozeModel.Fields) != 2 || clozeModel.Fields[0].Name != "Text" || clozeModel.Fields[1].Name != "Extra" {
+		t.Errorf("StandardClozeModel has incorrect fields")
+	}
+
+	// Test StandardDeck
+	deck := genanki.StandardDeck("Standard Deck", "Standard Deck Description")
+	if deck.ID != 1347639657110 {
+		t.Errorf("Expected StandardDeck to use ID 1347639657110, got %d", deck.ID)
+	}
+	if deck.Name != "Standard Deck" {
+		t.Errorf("Expected name to be 'Standard Deck', got %s", deck.Name)
+	}
+	if deck.Desc != "Standard Deck Description" {
+		t.Errorf("Expected description to match, got %s", deck.Desc)
+	}
+}

@@ -151,63 +151,22 @@ func (d *Database) AddModel(model *Model) error {
 	}
 
 	modelConfig := map[string]interface{}{
-		"id":        model.ID,
-		"name":      model.Name,
-		"type":      0, // Basic type
-		"mod":       0,
-		"usn":       0,
-		"sortf":     0, // Sort by first field
-		"did":       1, // Default deck ID
-		"vers":      []interface{}{},
-		"tags":      []interface{}{},
-		"css":       ".card {\n font-family: arial;\n font-size: 20px;\n text-align: center;\n color: black;\n background-color: white;\n}\n",
-		"latexPre":  "\\documentclass[12pt]{article}\n\\special{papersize=3in,5in}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amssymb,amsmath}\n\\pagestyle{empty}\n\\setlength{\\parindent}{0in}\n\\begin{document}\n",
-		"latexPost": "\\end{document}",
-		"latexsvg":  false,
-		"req":       []interface{}{[]interface{}{0, "all", []interface{}{0}}},
-		"flds": []map[string]interface{}{
-			{
-				"name":              "Front",
-				"ord":               0,
-				"sticky":            false,
-				"rtl":               false,
-				"font":              "Arial",
-				"size":              20,
-				"media":             []interface{}{},
-				"description":       "",
-				"plainText":         false,
-				"collapsed":         false,
-				"excludeFromSearch": false,
-				"preventDeletion":   false,
-			},
-			{
-				"name":              "Back",
-				"ord":               1,
-				"sticky":            false,
-				"rtl":               false,
-				"font":              "Arial",
-				"size":              20,
-				"media":             []interface{}{},
-				"description":       "",
-				"plainText":         false,
-				"collapsed":         false,
-				"excludeFromSearch": false,
-				"preventDeletion":   false,
-			},
-		},
-		"tmpls": []map[string]interface{}{
-			{
-				"name":  "Card 1",
-				"ord":   0,
-				"qfmt":  "{{Front}}",
-				"afmt":  "{{FrontSide}}\n\n<hr id=answer>\n\n{{Back}}",
-				"bqfmt": "",
-				"bafmt": "",
-				"did":   nil,
-				"bfont": "",
-				"bsize": 0,
-			},
-		},
+		"id":                model.ID,
+		"name":              model.Name,
+		"type":              getModelType(model), // 0 for basic, 1 for cloze
+		"mod":               0,
+		"usn":               0,
+		"sortf":             0, // Sort by first field
+		"did":               1, // Default deck ID
+		"vers":              []interface{}{},
+		"tags":              []interface{}{},
+		"css":               ".card {\n font-family: arial;\n font-size: 20px;\n text-align: center;\n color: black;\n background-color: white;\n}\n",
+		"latexPre":          "\\documentclass[12pt]{article}\n\\special{papersize=3in,5in}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amssymb,amsmath}\n\\pagestyle{empty}\n\\setlength{\\parindent}{0in}\n\\begin{document}\n",
+		"latexPost":         "\\end{document}",
+		"latexsvg":          false,
+		"req":               []interface{}{[]interface{}{0, "all", []interface{}{0}}},
+		"flds":              getFieldsConfig(model),
+		"tmpls":             getTemplatesConfig(model),
 		"originalStockKind": 1,
 	}
 
@@ -216,34 +175,62 @@ func (d *Database) AddModel(model *Model) error {
 		return fmt.Errorf("failed to marshal model config: %v", err)
 	}
 
+	// Read existing models from the database
+	var modelsJSON string
+	err = d.db.QueryRow("SELECT models FROM col WHERE id = 1").Scan(&modelsJSON)
+
+	var models map[string]interface{}
+	if err != nil || modelsJSON == "{}" {
+		// No existing models or error reading
+		models = make(map[string]interface{})
+	} else {
+		// Parse existing models
+		if err := json.Unmarshal([]byte(modelsJSON), &models); err != nil {
+			models = make(map[string]interface{})
+		}
+	}
+
+	// Add our model to the existing models
+	var modelData interface{}
+	if err := json.Unmarshal(modelJSON, &modelData); err != nil {
+		return fmt.Errorf("failed to unmarshal model JSON: %v", err)
+	}
+	models[fmt.Sprintf("%d", model.ID)] = modelData
+
+	// Convert back to JSON
+	newModelsJSON, err := json.Marshal(models)
+	if err != nil {
+		return fmt.Errorf("failed to marshal models: %v", err)
+	}
+
+	// Set up deck configuration
 	deckConf := map[string]interface{}{
 		"1": map[string]interface{}{
 			"id":       1,
-			"mod":      0,
+			"mod":      time.Now().Unix(),
 			"name":     "Default",
-			"usn":      0,
+			"usn":      -1,
 			"maxTaken": 60,
 			"autoplay": true,
 			"timer":    0,
 			"replayq":  true,
 			"new": map[string]interface{}{
 				"delays":        []float64{1.0, 10.0},
-				"ints":          []int{1, 4, 0},
+				"ints":          []int{1, 4, 7},
 				"initialFactor": 2500,
 				"separate":      true,
-				"order":         1,
+				"order":         0,
 				"perDay":        20,
 				"bury":          false,
 			},
 			"rev": map[string]interface{}{
-				"perDay":     200,
+				"perDay":     100,
+				"ivlFct":     1.0,
 				"ease4":      1.3,
 				"fuzz":       0.05,
-				"ivlFct":     1.0,
-				"maxIvl":     36500,
-				"bury":       false,
 				"minSpace":   1,
 				"hardFactor": 1.2,
+				"bury":       false,
 			},
 			"lapse": map[string]interface{}{
 				"delays":      []float64{10.0},
@@ -281,26 +268,38 @@ func (d *Database) AddModel(model *Model) error {
 		return fmt.Errorf("failed to marshal deck config: %v", err)
 	}
 
-	_, err = d.db.Exec(`
-		INSERT OR REPLACE INTO col (id, crt, mod, scm, ver, dty, usn, ls, conf, models, decks, dconf, tags)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`,
-		1,                 // id                 
-		time.Now().Unix(), // crt 
-		time.Now().Unix(), // mod 
-		time.Now().Unix(), // scm 
-		11,                // ver (schema version)                
-		0,                 // dty                 
-		0,                 // usn                 
-		0,                 // ls                 
-		string(confJSON),  // conf  
-		fmt.Sprintf(`{"%d": %s}`, model.ID, modelJSON), // models 
-		"{}",                 // decks (will be updated by AddDeck)                 
-		string(deckConfJSON), // dconf 
-		"{}",                 // tags                 
-	)
+	// First, check if the collection table exists and has data
+	var count int
+	err = d.db.QueryRow("SELECT COUNT(*) FROM col").Scan(&count)
+	if err != nil || count == 0 {
+		// Collection doesn't exist or is empty, so insert a new record
+		_, err = d.db.Exec(`
+			INSERT OR REPLACE INTO col (id, crt, mod, scm, ver, dty, usn, ls, conf, models, decks, dconf, tags)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`,
+			1,                     // id
+			time.Now().Unix(),     // crt
+			time.Now().Unix(),     // mod
+			time.Now().Unix(),     // scm
+			11,                    // ver (schema version)
+			0,                     // dty
+			0,                     // usn
+			0,                     // ls
+			string(confJSON),      // conf
+			string(newModelsJSON), // models with our model added
+			"{}",                  // decks (will be updated by AddDeck)
+			string(deckConfJSON),  // dconf
+			"{}",                  // tags
+		)
+	} else {
+		// Collection exists, so just update the models field
+		_, err = d.db.Exec("UPDATE col SET models = ?, mod = ? WHERE id = 1",
+			string(newModelsJSON),
+			time.Now().Unix())
+	}
+
 	if err != nil {
-		return fmt.Errorf("failed to insert model: %v", err)
+		return fmt.Errorf("failed to update models: %v", err)
 	}
 
 	return nil
@@ -599,4 +598,60 @@ func (d *Database) backupToFile(path string) error {
 	}
 
 	return nil
+}
+
+// Helper function to determine the model type (0 for basic, 1 for cloze)
+func getModelType(model *Model) int {
+	// Check if this is a cloze model by examining template formatting
+	for _, template := range model.Templates {
+		if strings.Contains(template.Qfmt, "{{cloze:") || strings.Contains(template.Afmt, "{{cloze:") {
+			return 1 // Cloze model
+		}
+	}
+	return 0 // Basic model
+}
+
+// Helper function to convert Model.Fields to Anki's expected format
+func getFieldsConfig(model *Model) []map[string]interface{} {
+	fields := make([]map[string]interface{}, len(model.Fields))
+
+	for i, field := range model.Fields {
+		fieldConfig := map[string]interface{}{
+			"name":      field.Name,
+			"ord":       field.Ord,
+			"sticky":    field.Sticky,
+			"rtl":       field.RTF,
+			"font":      field.Font,
+			"size":      field.Size,
+			"media":     []interface{}{},
+			"color":     field.Color,
+			"align":     field.Align,
+			"plainText": false,
+		}
+		fields[i] = fieldConfig
+	}
+
+	return fields
+}
+
+// Helper function to convert Model.Templates to Anki's expected format
+func getTemplatesConfig(model *Model) []map[string]interface{} {
+	templates := make([]map[string]interface{}, len(model.Templates))
+
+	for i, template := range model.Templates {
+		templateConfig := map[string]interface{}{
+			"name":  template.Name,
+			"ord":   template.Ord,
+			"qfmt":  template.Qfmt,
+			"afmt":  template.Afmt,
+			"bqfmt": template.Bqfmt,
+			"bafmt": template.Bafmt,
+			"did":   nil,
+			"bfont": "",
+			"bsize": 0,
+		}
+		templates[i] = templateConfig
+	}
+
+	return templates
 }

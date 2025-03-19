@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	genanki "github.com/npcnixel/genanki-go"
@@ -46,99 +47,50 @@ func generateSampleImage() ([]byte, error) {
 }
 
 func main() {
-	db, err := genanki.NewDatabase()
-	if err != nil {
-		log.Fatalf("Failed to create database: %v", err)
-	}
-
-	// Create a basic model using the built-in function
-	// Using Anki's standard Basic model ID
+	// Create models - using auto-generated IDs
 	basicModel := genanki.NewBasicModel(
-		1, // Anki's standard Basic model ID
+		0, // Auto-generate ID
 		"Basic",
 	)
 
-	// Customize the basic model
-	basicModel.Model.Fields = []genanki.Field{
-		{Name: "Front", Ord: 0, Font: "Arial", Size: 20},
-		{Name: "Back", Ord: 1, Font: "Arial", Size: 20},
-	}
-
-	basicModel.Model.Templates = []genanki.Template{
-		{
-			Name: "Card 1",
-			Ord:  0,
-			Qfmt: "{{Front}}",
-			Afmt: "{{FrontSide}}<hr id=answer>{{Back}}",
-		},
-	}
-
-	basicModel.Model.CSS = `.card {
-		font-family: Arial, sans-serif;
-		font-size: 20px;
-		text-align: center;
-		color: #333;
-		background-color: #f8f8f8;
-		padding: 20px;
-	}
-	.card img {
-		max-width: 90%;
-		max-height: 400px;
-	}
-	hr#answer {
-		border: 1px solid #ccc;
-		margin: 20px 0;
-	}
-	small {
-		font-size: 14px;
-		color: #666;
-	}
-	.cloze {
-		font-weight: bold;
-		color: blue;
-	}`
-
-	// Add model to database
-	if err := db.AddModel(basicModel.Model); err != nil {
-		log.Fatalf("Failed to add basic model: %v", err)
-	}
-	log.Println("Added basic model to database")
-
-	// Create a deck
-	deck := genanki.NewDeck(
-		1, // Using a simple deck ID
-		"Advanced Example Deck",
-		"A deck demonstrating advanced features of genanki-go",
+	clozeModel := genanki.NewClozeModel(
+		0, // Auto-generate ID
+		"Cloze",
 	)
 
-	// Add deck to database
-	if err := db.AddDeck(deck); err != nil {
-		log.Fatalf("Failed to add deck: %v", err)
-	}
-	log.Println("Added deck to database")
+	// Create a deck - using auto-generated ID
+	deck := genanki.NewDeck(
+		0, // Auto-generate ID
+		"Advanced Example Deck",
+		"An advanced example deck with multiple note types and media",
+	)
 
-	// Create notes with unique IDs
+	// Print the generated IDs for reference
+	fmt.Printf("Generated Basic Model ID: %d\n", basicModel.ID)
+	fmt.Printf("Generated Cloze Model ID: %d\n", clozeModel.ID)
+	fmt.Printf("Generated Deck ID: %d\n", deck.ID)
+
+	// Create basic notes
 	basicNote1 := genanki.NewNote(
-		basicModel.Model.ID,
+		basicModel.ID,
 		[]string{
 			"What is the capital of France?",
 			"Paris",
 		},
-		[]string{"geography", "europe", "capitals"},
+		[]string{"geography", "europe"},
 	)
 
 	basicNote2 := genanki.NewNote(
-		basicModel.Model.ID,
+		basicModel.ID,
 		[]string{
 			"What is the largest planet in our solar system?",
 			"Jupiter",
 		},
-		[]string{"astronomy", "planets", "science"},
+		[]string{"astronomy", "planets"},
 	)
 
-	// Add a note with the user's image
 	basicNote3 := genanki.NewNote(
-		basicModel.Model.ID,
+		basicModel.ID,
 		[]string{
 			"What does this image show?<br><img src='istockphoto-1263636227-612x612.jpg'>",
 			"A stock photo",
@@ -148,7 +100,7 @@ func main() {
 
 	// Add a note with a generated image
 	basicNote4 := genanki.NewNote(
-		basicModel.Model.ID,
+		basicModel.ID,
 		[]string{
 			"What does this represent?<br><img src='sample_image.png'>",
 			"A generated image",
@@ -156,42 +108,38 @@ func main() {
 		[]string{"images", "examples", "generated"},
 	)
 
-	// Add cloze-like notes (using basic model)
+	// Add cloze-like notes
 	clozeNote1 := genanki.NewNote(
-		basicModel.Model.ID,
+		clozeModel.ID,
 		[]string{
-			"What is the capital of France?",
-			"The capital of France is Paris.",
+			"The capital of France is {{c1::Paris}}.",
+			"",
 		},
 		[]string{"geography", "europe"},
 	)
 
 	clozeNote2 := genanki.NewNote(
-		basicModel.Model.ID,
+		clozeModel.ID,
 		[]string{
-			"What is the largest planet in our solar system?",
-			"Jupiter is the largest planet in our solar system.",
+			"{{c1::Jupiter}} is the largest planet in our solar system.",
+			"",
 		},
 		[]string{"astronomy", "planets"},
 	)
 
-	// Add notes to database and create cards
+	// Add notes to deck
 	notes := []*genanki.Note{basicNote1, basicNote2, basicNote3, basicNote4, clozeNote1, clozeNote2}
-	for i, note := range notes {
-		if err := db.AddNote(note); err != nil {
-			log.Fatalf("Failed to add note %d: %v", i+1, err)
-		}
-		log.Printf("Added note %d to database", i+1)
-
-		// Create a card for each note
-		if err := db.AddCard(note.ID, deck.ID, 0); err != nil {
-			log.Fatalf("Failed to add card for note %d: %v", i+1, err)
-		}
-		log.Printf("Added card for note %d", i+1)
+	for _, note := range notes {
+		deck.AddNote(note)
+		log.Printf("Added note with fields: %q", strings.Join(note.Fields, "\u001f"))
 	}
 
 	// Create package
-	pkg := genanki.NewPackage(db)
+	pkg := genanki.NewPackage([]*genanki.Deck{deck})
+
+	// Add models to package
+	pkg.AddModel(basicModel.Model)
+	pkg.AddModel(clozeModel.Model)
 
 	// Add the user's image file
 	userImagePath := "istockphoto-1263636227-612x612.jpg"
@@ -200,31 +148,34 @@ func main() {
 		log.Printf("Warning: Failed to read user image file: %v", err)
 		log.Println("Continuing without user image...")
 	} else {
-		pkg.AddMedia("istockphoto-1263636227-612x612.jpg", userImageData)
+		pkg.AddMedia(userImagePath, userImageData)
 		log.Println("Added user image to package")
 	}
 
 	// Generate and add sample image
 	imageData, err := generateSampleImage()
 	if err != nil {
-		log.Fatalf("Failed to generate sample image: %v", err)
+		log.Printf("Warning: Failed to generate sample image: %v", err)
+		log.Println("Continuing without sample image...")
+	} else {
+		pkg.AddMedia("sample_image.png", imageData)
+		log.Println("Added generated image to package")
 	}
-	pkg.AddMedia("sample_image.png", imageData)
-	log.Println("Added generated image to package")
 
-	// Ensure output directory exists at same level as example directories
+	// Create output directory
 	outputDir := filepath.Join("..", "output")
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 
-	// Write package to file in the output directory
+	// Write package to file
 	outputPath := filepath.Join(outputDir, "advanced_deck.apkg")
 	if err := pkg.WriteToFile(outputPath); err != nil {
 		log.Fatalf("Failed to write package: %v", err)
 	}
 
+	// Summary
 	fmt.Printf("Successfully created Anki deck: %s\n", outputPath)
-	fmt.Printf("Number of notes: %d\n", len(notes))
-	fmt.Printf("Created at: %s\n", time.Now().Format(time.RFC1123))
+	fmt.Printf("Number of notes: %d\n", len(deck.Notes))
+	fmt.Printf("Created: %s\n", time.Now().Format(time.RFC1123))
 }

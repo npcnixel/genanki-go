@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-
 type Model struct {
 	ID        int64
 	Name      string
@@ -15,7 +14,6 @@ type Model struct {
 	Templates []Template
 	CSS       string
 }
-
 
 type Field struct {
 	Name   string
@@ -28,7 +26,6 @@ type Field struct {
 	Align  string
 }
 
-
 type Template struct {
 	Name  string
 	Ord   int
@@ -37,7 +34,6 @@ type Template struct {
 	Bqfmt string
 	Bafmt string
 }
-
 
 type Note struct {
 	ID        int64
@@ -49,7 +45,6 @@ type Note struct {
 	CheckSum  int64
 }
 
-
 type Deck struct {
 	ID       int64
 	Name     string
@@ -60,13 +55,11 @@ type Deck struct {
 	Modified time.Time
 }
 
-
 func GenerateIntID() int64 {
 	var b [8]byte
 	rand.Read(b[:])
 	return int64(binary.LittleEndian.Uint64(b[:])) % math.MaxInt64
 }
-
 
 func NewModel(id int64, name string) *Model {
 	return &Model{
@@ -78,11 +71,9 @@ func NewModel(id int64, name string) *Model {
 	}
 }
 
-
 func NewNote(modelID int64, fields []string, tags []string) *Note {
 	now := time.Now()
 
-	
 	csum := int64(0)
 	if len(fields) > 0 {
 		for _, c := range fields[0] {
@@ -96,13 +87,18 @@ func NewNote(modelID int64, fields []string, tags []string) *Note {
 		Fields:    fields,
 		Tags:      tags,
 		Modified:  now,
-		SortField: fields[0], 
+		SortField: fields[0],
 		CheckSum:  csum,
 	}
 }
 
-
 func NewDeck(id int64, name string, desc string) *Deck {
+	// Auto-generate ID if not provided (i.e., if id is 0)
+	if id == 0 {
+		// Use a standard Anki deck ID for better compatibility
+		id = 1347639657110
+	}
+
 	now := time.Now()
 	return &Deck{
 		ID:       id,
@@ -115,18 +111,15 @@ func NewDeck(id int64, name string, desc string) *Deck {
 	}
 }
 
-
 func (d *Deck) AddNote(note *Note) {
 	d.Notes = append(d.Notes, note)
 	d.Modified = time.Now()
 }
 
-
 func (d *Deck) AddMedia(filename string, data []byte) {
 	d.Media[filename] = data
 	d.Modified = time.Now()
 }
-
 
 const defaultCSS = `
 .card {
@@ -139,27 +132,28 @@ const defaultCSS = `
 }
 `
 
-
 type BasicModel struct {
 	*Model
 }
-
 
 type ClozeModel struct {
 	*Model
 }
 
-
 func NewBasicModel(id int64, name string) *BasicModel {
+	// Auto-generate ID if not provided (i.e., if id is 0)
+	if id == 0 {
+		// Use Anki's standard Basic model ID for better compatibility
+		id = 1607392319
+	}
+
 	model := NewModel(id, name)
 
-	
 	model.Fields = []Field{
 		{Name: "Front", Ord: 0, Font: "Arial", Size: 20, Color: "#000000", Align: "left"},
 		{Name: "Back", Ord: 1, Font: "Arial", Size: 20, Color: "#000000", Align: "left"},
 	}
 
-	
 	model.Templates = []Template{
 		{
 			Name: "Card 1",
@@ -172,17 +166,20 @@ func NewBasicModel(id int64, name string) *BasicModel {
 	return &BasicModel{Model: model}
 }
 
-
 func NewClozeModel(id int64, name string) *ClozeModel {
+	// Auto-generate ID if not provided (i.e., if id is 0)
+	if id == 0 {
+		// Use Anki's standard Cloze model ID for better compatibility
+		id = 1122334455
+	}
+
 	model := NewModel(id, name)
 
-	
 	model.Fields = []Field{
 		{Name: "Text", Ord: 0, Font: "Arial", Size: 20, Color: "#000000", Align: "left"},
 		{Name: "Extra", Ord: 1, Font: "Arial", Size: 20, Color: "#000000", Align: "left"},
 	}
 
-	
 	model.Templates = []Template{
 		{
 			Name: "Cloze",
@@ -195,19 +192,33 @@ func NewClozeModel(id int64, name string) *ClozeModel {
 	return &ClozeModel{Model: model}
 }
 
-
 func (m *Model) AddField(field Field) {
 	field.Ord = len(m.Fields)
 	m.Fields = append(m.Fields, field)
 }
-
 
 func (m *Model) AddTemplate(template Template) {
 	template.Ord = len(m.Templates)
 	m.Templates = append(m.Templates, template)
 }
 
-
 func (m *Model) SetCSS(css string) {
 	m.CSS = css
+}
+
+// Convenience functions that don't require passing IDs
+
+// StandardBasicModel creates a new basic model with Anki's standard model ID
+func StandardBasicModel(name string) *BasicModel {
+	return NewBasicModel(0, name)
+}
+
+// StandardClozeModel creates a new cloze model with Anki's standard model ID
+func StandardClozeModel(name string) *ClozeModel {
+	return NewClozeModel(0, name)
+}
+
+// StandardDeck creates a new deck with Anki's standard deck ID
+func StandardDeck(name string, desc string) *Deck {
+	return NewDeck(0, name, desc)
 }

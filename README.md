@@ -1,6 +1,14 @@
 # genanki-go
 
-A Go library for generating Anki decks programmatically. This is a port of the Python [genanki](https://github.com/kerrickstaley/genanki) library.
+A Go library for generating Anki decks programmatically.
+
+## Features
+
+- Create Anki decks with notes and cards
+- Support for basic and cloze models
+- Add media files (images, audio, video)
+- Generate `.apkg` files for Anki import
+- Simple and intuitive API
 
 ## Installation
 
@@ -8,116 +16,85 @@ A Go library for generating Anki decks programmatically. This is a port of the P
 go get github.com/npcnixel/genanki-go
 ```
 
-## Features
+## Quick Start
 
-- Create Anki decks programmatically
-- Support for basic card types
-- Support for cloze deletion cards
-- Include media files (images, audio) (TODO)
-- Generate Anki-compatible .apkg files
-- Compatible with Anki 25.02 and newer versions
-
-## Requirements
-
-- Go 1.16 or later
-- [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) for SQLite support
-
-## Basic Usage
+Here's a simple example of creating a basic Anki deck:
 
 ```go
 package main
 
 import (
-	"fmt"
-	"log"
-
-	"github.com/npcnixel/genanki-go/pkg/genanki"
+    "github.com/npcnixel/genanki-go"
 )
 
 func main() {
-	// Create a basic model (front/back)
-	basicModel := genanki.NewBasicModel(
-		genanki.GenerateIntID(),
-		"Basic Model",
-	)
+    // Create a basic model
+    model := genanki.StandardBasicModel("My Model")
 
-	// Create a new deck
-	deck := genanki.NewDeck(
-		genanki.GenerateDeckID(),
-		"My First Deck",
-		"A simple example deck",
-	)
+    // Create a deck
+    deck := genanki.StandardDeck("My Deck", "A deck for testing")
 
-	// Add a note to the deck
-	note := genanki.NewNote(
-		basicModel.ID,
-		[]string{"What is the capital of France?", "Paris"},
-		[]string{"geography", "europe"},
-	)
-	deck.AddNote(note)
-
-	// Write the deck to an .apkg file
-	err := deck.WriteToApkg("my_first_deck.apkg", []*genanki.Model{basicModel})
-	if err != nil {
-		log.Fatalf("Error creating Anki deck: %v", err)
-	}
-
-	fmt.Println("Successfully created Anki deck: my_first_deck.apkg")
+    // Create a note
+    note := genanki.NewNote(model, []string{"What is the capital of France?", "Paris"})
+    
+    // Add note to deck
+    deck.AddNote(note)
+    
+    // Create a package with the deck
+    pkg := genanki.NewPackage([]*genanki.Deck{deck})
+    
+    // Add the model to the package
+    pkg.AddModel(model)
+    
+    // Write the package to a file
+    pkg.WriteToFile("output.apkg")
 }
 ```
 
-## Advanced Features
+## Advanced Usage
 
-### Using Images
-
-```go
-// Add a note with an image
-imageNote := genanki.NewNote(
-	basicModel.ID,
-	[]string{
-		"What famous landmark is this?",
-		"The Eiffel Tower<br><img src=\"eiffel_tower.jpg\">",
-	},
-	[]string{"landmarks", "europe"},
-)
-deck.AddNote(imageNote)
-
-// Add the image file to the deck's media
-deck.AddMedia("eiffel_tower.jpg", "/path/to/eiffel_tower.jpg")
-```
-
-### Creating Cloze Deletion Cards
+### Creating Different Types of Models
 
 ```go
+// Create a basic model
+basicModel := genanki.StandardBasicModel("Basic Model")
+
 // Create a cloze model
-clozeModel := genanki.NewClozeModel(
-	genanki.GenerateIntID(),
-	"Cloze Model",
-)
+clozeModel := genanki.StandardClozeModel("Cloze Model")
 
-// Add a cloze note
-clozeNote := genanki.NewNote(
-	clozeModel.ID,
-	[]string{
-		"The capital of France is {{c1::Paris}}.",
-		"Additional information about Paris.",
-	},
-	[]string{"geography", "cloze"},
-)
-deck.AddNote(clozeNote)
+// Create a deck
+deck := genanki.StandardDeck("My Deck", "A deck for testing")
 ```
 
-## Examples
+### Adding Media Files
 
-See the `examples` directory for complete examples:
+```go
+// Create a package
+pkg := genanki.NewPackage([]*genanki.Deck{deck})
 
-- `examples/basic_example`: Simple example creating a basic deck
-- `examples/advanced_example`: Advanced example demonstrating cloze deletions and media
+// Add an image file
+imageData, _ := ioutil.ReadFile("image.jpg")
+pkg.AddMedia("image.jpg", imageData)
+
+// Add an audio file
+audioData, _ := ioutil.ReadFile("audio.mp3")
+pkg.AddMedia("audio.mp3", audioData)
+```
+
+### Creating Cloze Notes
+
+```go
+// Create a cloze note
+note := genanki.NewNote(clozeModel, []string{
+    "The capital of France is {{c1::Paris}}.",
+    "The capital of Spain is {{c1::Madrid}}.",
+})
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-[MIT License](LICENSE)
-
-## Acknowledgements
-
-This project is a Go port of the Python [genanki](https://github.com/kerrickstaley/genanki) library by Kerrick Staley.
+This project is licensed under the MIT License - see the LICENSE file for details.

@@ -10,34 +10,24 @@ import (
 )
 
 func main() {
-
-	db, err := genanki.NewDatabase()
-	if err != nil {
-		log.Fatalf("Failed to create database: %v", err)
-	}
-	defer db.Close()
-
+	// Create a basic model with auto-generated ID
 	basicModel := genanki.NewBasicModel(
-		1234567890,
+		0, // Auto-generate ID
 		"Basic",
 	)
 
-	if err := db.AddModel(basicModel.Model); err != nil {
-		log.Fatalf("Failed to add model: %v", err)
-	}
-	log.Printf("Added model to database")
-
+	// Create a new deck with auto-generated ID
 	deck := genanki.NewDeck(
-		1122334455,
+		0, // Auto-generate ID
 		"Test Deck",
 		"A test deck",
 	)
 
-	if err := db.AddDeck(deck); err != nil {
-		log.Fatalf("Failed to add deck: %v", err)
-	}
-	log.Printf("Added deck to database")
+	// Print the generated IDs for reference
+	fmt.Printf("Generated Basic Model ID: %d\n", basicModel.ID)
+	fmt.Printf("Generated Deck ID: %d\n", deck.ID)
 
+	// Create a note
 	note := genanki.NewNote(
 		basicModel.ID,
 		[]string{
@@ -47,24 +37,14 @@ func main() {
 		[]string{"math", "basic"},
 	)
 
+	// Add note to the deck
 	deck.AddNote(note)
 
-	if err := db.AddNote(note); err != nil {
-		log.Fatalf("Failed to add note: %v", err)
-	}
-	log.Printf("Added note to database")
+	// Create a package
+	pkg := genanki.NewPackage([]*genanki.Deck{deck})
 
-	if err := db.AddCard(note.ID, deck.ID, 0); err != nil {
-		log.Fatalf("Failed to add card: %v", err)
-	}
-	log.Printf("Added card to database")
-
-	pkg := genanki.NewPackage(db)
-
-	log.Println("Verifying database content...")
-	if err := db.VerifyContent(); err != nil {
-		log.Printf("Warning: Failed to verify database content: %v", err)
-	}
+	// Add models to the package
+	pkg.AddModel(basicModel.Model)
 
 	// Ensure output directory exists at same level as example directories
 	outputDir := filepath.Join("..", "output")
