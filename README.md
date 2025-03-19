@@ -51,7 +51,10 @@ func main() {
 }
 ```
 
-## Advanced Usage
+<br>
+
+<details>
+<summary><h2 style="display: inline-block">Advanced Usage</h2></summary>
 
 ### Creating Different Types of Models
 
@@ -94,6 +97,7 @@ note := genanki.NewNote(clozeModel.ID, []string{
     "The capital of Spain is {{c1::Madrid}}.",
 }, []string{"geography"})
 ```
+</details>
 
 ## Contributing
 
