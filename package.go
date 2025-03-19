@@ -41,12 +41,14 @@ func NewPackage(data interface{}) *Package {
 }
 
 // AddModel adds a model to the package
-func (p *Package) AddModel(model *Model) {
+func (p *Package) AddModel(model *Model) *Package {
 	p.models = append(p.models, model)
+	return p
 }
 
-func (p *Package) AddMedia(filename string, data []byte) {
+func (p *Package) AddMedia(filename string, data []byte) *Package {
 	p.media[filename] = data
+	return p
 }
 
 func (p *Package) WriteToFile(path string) error {
@@ -59,7 +61,7 @@ func (p *Package) WriteToFile(path string) error {
 		dbToUse = p.db
 	} else {
 		// Create a new database for the package
-		dbToUse, err = NewDatabase()
+		dbToUse, err = newDatabase()
 		if err != nil {
 			return fmt.Errorf("failed to create database: %v", err)
 		}
@@ -67,26 +69,34 @@ func (p *Package) WriteToFile(path string) error {
 
 		// Add all models
 		for _, model := range p.models {
-			if err := dbToUse.AddModel(model); err != nil {
-				return fmt.Errorf("failed to add model to database: %v", err)
+			var modelErr error
+			dbToUse, modelErr = dbToUse.AddModel(model)
+			if modelErr != nil {
+				return fmt.Errorf("failed to add model to database: %v", modelErr)
 			}
 		}
 
 		// Add all decks
 		for _, deck := range p.decks {
-			if err := dbToUse.AddDeck(deck); err != nil {
-				return fmt.Errorf("failed to add deck to database: %v", err)
+			var deckErr error
+			dbToUse, deckErr = dbToUse.AddDeck(deck)
+			if deckErr != nil {
+				return fmt.Errorf("failed to add deck to database: %v", deckErr)
 			}
 
 			// Add all notes from this deck
 			for _, note := range deck.Notes {
-				if err := dbToUse.AddNote(note); err != nil {
-					return fmt.Errorf("failed to add note to database: %v", err)
+				var noteErr error
+				dbToUse, noteErr = dbToUse.AddNote(note)
+				if noteErr != nil {
+					return fmt.Errorf("failed to add note to database: %v", noteErr)
 				}
 
 				// Add a card for each note
-				if err := dbToUse.AddCard(note.ID, deck.ID, 0); err != nil {
-					return fmt.Errorf("failed to add card to database: %v", err)
+				var cardErr error
+				dbToUse, cardErr = dbToUse.AddCard(note.ID, deck.ID, 0)
+				if cardErr != nil {
+					return fmt.Errorf("failed to add card to database: %v", cardErr)
 				}
 			}
 

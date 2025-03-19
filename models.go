@@ -111,14 +111,16 @@ func NewDeck(id int64, name string, desc string) *Deck {
 	}
 }
 
-func (d *Deck) AddNote(note *Note) {
+func (d *Deck) AddNote(note *Note) *Deck {
 	d.Notes = append(d.Notes, note)
 	d.Modified = time.Now()
+	return d
 }
 
-func (d *Deck) AddMedia(filename string, data []byte) {
+func (d *Deck) AddMedia(filename string, data []byte) *Deck {
 	d.Media[filename] = data
 	d.Modified = time.Now()
+	return d
 }
 
 const defaultCSS = `
@@ -192,18 +194,21 @@ func NewClozeModel(id int64, name string) *ClozeModel {
 	return &ClozeModel{Model: model}
 }
 
-func (m *Model) AddField(field Field) {
+func (m *Model) AddField(field Field) *Model {
 	field.Ord = len(m.Fields)
 	m.Fields = append(m.Fields, field)
+	return m
 }
 
-func (m *Model) AddTemplate(template Template) {
+func (m *Model) AddTemplate(template Template) *Model {
 	template.Ord = len(m.Templates)
 	m.Templates = append(m.Templates, template)
+	return m
 }
 
-func (m *Model) SetCSS(css string) {
+func (m *Model) SetCSS(css string) *Model {
 	m.CSS = css
+	return m
 }
 
 // Convenience functions that don't require passing IDs

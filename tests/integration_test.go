@@ -8,24 +8,11 @@ import (
 )
 
 func TestBasicIntegration(t *testing.T) {
-	// Create a new database
-	db, err := genanki.NewDatabase()
-	if err != nil {
-		t.Fatalf("Failed to create database: %v", err)
-	}
-	defer db.Close()
-
 	// Create a model
 	basicModel := genanki.NewBasicModel(1234567890, "Test Basic Model")
-	if err := db.AddModel(basicModel.Model); err != nil {
-		t.Fatalf("Failed to add model: %v", err)
-	}
 
 	// Create a deck
 	deck := genanki.NewDeck(9876543210, "Test Deck", "Test Description")
-	if err := db.AddDeck(deck); err != nil {
-		t.Fatalf("Failed to add deck: %v", err)
-	}
 
 	// Create a note
 	note := genanki.NewNote(
@@ -33,17 +20,13 @@ func TestBasicIntegration(t *testing.T) {
 		[]string{"Test Question", "Test Answer"},
 		[]string{"test", "basic"},
 	)
-	if err := db.AddNote(note); err != nil {
-		t.Fatalf("Failed to add note: %v", err)
-	}
 
-	// Create a card
-	if err := db.AddCard(note.ID, deck.ID, 0); err != nil {
-		t.Fatalf("Failed to add card: %v", err)
-	}
+	// Add note to deck
+	deck.AddNote(note)
 
 	// Create a package
-	pkg := genanki.NewPackage(db)
+	pkg := genanki.NewPackage([]*genanki.Deck{deck})
+	pkg.AddModel(basicModel.Model)
 
 	// Add media
 	mediaData := []byte("test media data")
@@ -73,45 +56,20 @@ func TestBasicIntegration(t *testing.T) {
 }
 
 func TestMultipleNotesIntegration(t *testing.T) {
-	// Create a new database
-	db, err := genanki.NewDatabase()
-	if err != nil {
-		t.Fatalf("Failed to create database: %v", err)
-	}
-	defer db.Close()
-
 	// Create a basic model
 	basicModel := genanki.NewBasicModel(1234567890, "Test Basic Model")
-	if err := db.AddModel(basicModel.Model); err != nil {
-		t.Fatalf("Failed to add basic model: %v", err)
-	}
 
 	// Create a deck
 	deck := genanki.NewDeck(9876543210, "Test Deck", "Test Description")
-	if err := db.AddDeck(deck); err != nil {
-		t.Fatalf("Failed to add deck: %v", err)
-	}
 
-	// Create multiple notes
-	notes := []*genanki.Note{
-		genanki.NewNote(basicModel.Model.ID, []string{"Question 1", "Answer 1"}, []string{"test"}),
-		genanki.NewNote(basicModel.Model.ID, []string{"Question 2", "Answer 2"}, []string{"test"}),
-		genanki.NewNote(basicModel.Model.ID, []string{"Question 3", "Answer 3"}, []string{"test"}),
-	}
-
-	// Add notes and cards to database
-	for _, note := range notes {
-		if err := db.AddNote(note); err != nil {
-			t.Fatalf("Failed to add note: %v", err)
-		}
-
-		if err := db.AddCard(note.ID, deck.ID, 0); err != nil {
-			t.Fatalf("Failed to add card: %v", err)
-		}
-	}
+	// Create multiple notes and add them to the deck
+	deck.AddNote(genanki.NewNote(basicModel.Model.ID, []string{"Question 1", "Answer 1"}, []string{"test"}))
+	deck.AddNote(genanki.NewNote(basicModel.Model.ID, []string{"Question 2", "Answer 2"}, []string{"test"}))
+	deck.AddNote(genanki.NewNote(basicModel.Model.ID, []string{"Question 3", "Answer 3"}, []string{"test"}))
 
 	// Create package
-	pkg := genanki.NewPackage(db)
+	pkg := genanki.NewPackage([]*genanki.Deck{deck})
+	pkg.AddModel(basicModel.Model)
 
 	// Write to file
 	tmpFile, err := os.CreateTemp("", "test_multi_*.apkg")
@@ -137,29 +95,12 @@ func TestMultipleNotesIntegration(t *testing.T) {
 }
 
 func TestMultipleModelsDeckIntegration(t *testing.T) {
-	// Create a new database
-	db, err := genanki.NewDatabase()
-	if err != nil {
-		t.Fatalf("Failed to create database: %v", err)
-	}
-	defer db.Close()
-
 	// Create a basic model
 	basicModel := genanki.NewBasicModel(0, "Geography Model")
-	if err := db.AddModel(basicModel.Model); err != nil {
-		t.Fatalf("Failed to add model: %v", err)
-	}
 
 	// Create two decks
 	geoDeck := genanki.NewDeck(0, "Geography Deck", "A deck for geography flashcards")
 	mathDeck := genanki.NewDeck(2059400110, "Math Deck", "A deck for math flashcards")
-
-	if err := db.AddDeck(geoDeck); err != nil {
-		t.Fatalf("Failed to add geography deck: %v", err)
-	}
-	if err := db.AddDeck(mathDeck); err != nil {
-		t.Fatalf("Failed to add math deck: %v", err)
-	}
 
 	// Create notes for geography
 	geoNote1 := genanki.NewNote(basicModel.ID, []string{"What is the capital of France?", "Paris"}, []string{"geography", "europe"})
@@ -169,31 +110,13 @@ func TestMultipleModelsDeckIntegration(t *testing.T) {
 	mathNote1 := genanki.NewNote(basicModel.ID, []string{"What is 2+2?", "4"}, []string{"math", "addition"})
 	mathNote2 := genanki.NewNote(basicModel.ID, []string{"What is 3×3?", "9"}, []string{"math", "multiplication"})
 
-	// Add notes to the database
-	for _, note := range []*genanki.Note{geoNote1, geoNote2, mathNote1, mathNote2} {
-		if err := db.AddNote(note); err != nil {
-			t.Fatalf("Failed to add note: %v", err)
-		}
-	}
+	// Add notes to decks
+	geoDeck.AddNote(geoNote1).AddNote(geoNote2)
+	mathDeck.AddNote(mathNote1).AddNote(mathNote2)
 
-	// Add cards for geography deck
-	if err := db.AddCard(geoNote1.ID, geoDeck.ID, 0); err != nil {
-		t.Fatalf("Failed to add card: %v", err)
-	}
-	if err := db.AddCard(geoNote2.ID, geoDeck.ID, 0); err != nil {
-		t.Fatalf("Failed to add card: %v", err)
-	}
-
-	// Add cards for math deck
-	if err := db.AddCard(mathNote1.ID, mathDeck.ID, 0); err != nil {
-		t.Fatalf("Failed to add card: %v", err)
-	}
-	if err := db.AddCard(mathNote2.ID, mathDeck.ID, 0); err != nil {
-		t.Fatalf("Failed to add card: %v", err)
-	}
-
-	// Create a package from the database
-	pkg := genanki.NewPackage(db)
+	// Create a package with multiple decks
+	pkg := genanki.NewPackage([]*genanki.Deck{geoDeck, mathDeck})
+	pkg.AddModel(basicModel.Model)
 
 	// Write the package to a temporary file
 	tmpFile, err := os.CreateTemp("", "anki-*.apkg")
@@ -218,51 +141,27 @@ func TestMultipleModelsDeckIntegration(t *testing.T) {
 
 // Test using the new convenience functions
 func TestNewAPIPattern(t *testing.T) {
-	// Create a new database
-	db, err := genanki.NewDatabase()
-	if err != nil {
-		t.Fatalf("Failed to create database: %v", err)
-	}
-	defer db.Close()
-
 	// Use convenience functions to create model and deck
 	basicModel := genanki.StandardBasicModel("Test Basic Model")
 	deck := genanki.StandardDeck("Test Standard Deck", "A test deck using standard IDs")
 
-	// Add model to the database
-	if err := db.AddModel(basicModel.Model); err != nil {
-		t.Fatalf("Failed to add model: %v", err)
+	// Create and add notes to deck with method chaining
+	deck.
+		AddNote(genanki.NewNote(basicModel.ID, []string{"Question 1", "Answer 1"}, []string{"test"})).
+		AddNote(genanki.NewNote(basicModel.ID, []string{"Question 2", "Answer 2"}, []string{"test"}))
+
+	// Verify notes were added to deck
+	if len(deck.Notes) != 2 {
+		t.Errorf("Expected 2 notes in deck, got %d", len(deck.Notes))
 	}
 
-	// Add deck to the database
-	if err := db.AddDeck(deck); err != nil {
-		t.Fatalf("Failed to add deck: %v", err)
-	}
+	// Create package and add model with method chaining
+	pkg := genanki.NewPackage([]*genanki.Deck{deck}).
+		AddModel(basicModel.Model).
+		AddMedia("test_media.txt", []byte("Test content"))
 
-	// Create and add notes
-	note1 := genanki.NewNote(basicModel.ID, []string{"Question 1", "Answer 1"}, []string{"test"})
-	note2 := genanki.NewNote(basicModel.ID, []string{"Question 2", "Answer 2"}, []string{"test"})
-
-	// Add notes to the database
-	for _, note := range []*genanki.Note{note1, note2} {
-		if err := db.AddNote(note); err != nil {
-			t.Fatalf("Failed to add note: %v", err)
-		}
-	}
-
-	// Add cards to the deck
-	if err := db.AddCard(note1.ID, deck.ID, 0); err != nil {
-		t.Fatalf("Failed to add card: %v", err)
-	}
-	if err := db.AddCard(note2.ID, deck.ID, 0); err != nil {
-		t.Fatalf("Failed to add card: %v", err)
-	}
-
-	// Create a package from the database
-	pkg := genanki.NewPackage(db)
-
-	// Write the package to a temporary file
-	tmpFile, err := os.CreateTemp("", "anki-standard-*.apkg")
+	// Write to a temporary file
+	tmpFile, err := os.CreateTemp("", "api-pattern-*.apkg")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
@@ -280,4 +179,7 @@ func TestNewAPIPattern(t *testing.T) {
 	if stat.Size() == 0 {
 		t.Fatalf("File has zero size")
 	}
+
+	t.Logf("Successfully created Anki deck with new API: %s (%d bytes)",
+		tmpFile.Name(), stat.Size())
 }

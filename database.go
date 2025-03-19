@@ -16,7 +16,8 @@ type Database struct {
 	db *sql.DB
 }
 
-func NewDatabase() (*Database, error) {
+// newDatabase creates a new in-memory database instance
+func newDatabase() (*Database, error) {
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %v", err)
@@ -125,7 +126,7 @@ func (d *Database) initialize() error {
 	return nil
 }
 
-func (d *Database) AddModel(model *Model) error {
+func (d *Database) AddModel(model *Model) (*Database, error) {
 	conf := map[string]interface{}{
 		"nextPos":              1,
 		"estTimes":             true,
@@ -147,7 +148,7 @@ func (d *Database) AddModel(model *Model) error {
 
 	confJSON, err := json.Marshal(conf)
 	if err != nil {
-		return fmt.Errorf("failed to marshal conf: %v", err)
+		return nil, fmt.Errorf("failed to marshal conf: %v", err)
 	}
 
 	modelConfig := map[string]interface{}{
@@ -172,7 +173,7 @@ func (d *Database) AddModel(model *Model) error {
 
 	modelJSON, err := json.Marshal(modelConfig)
 	if err != nil {
-		return fmt.Errorf("failed to marshal model config: %v", err)
+		return nil, fmt.Errorf("failed to marshal model config: %v", err)
 	}
 
 	// Read existing models from the database
@@ -193,14 +194,14 @@ func (d *Database) AddModel(model *Model) error {
 	// Add our model to the existing models
 	var modelData interface{}
 	if err := json.Unmarshal(modelJSON, &modelData); err != nil {
-		return fmt.Errorf("failed to unmarshal model JSON: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal model JSON: %v", err)
 	}
 	models[fmt.Sprintf("%d", model.ID)] = modelData
 
 	// Convert back to JSON
 	newModelsJSON, err := json.Marshal(models)
 	if err != nil {
-		return fmt.Errorf("failed to marshal models: %v", err)
+		return nil, fmt.Errorf("failed to marshal models: %v", err)
 	}
 
 	// Set up deck configuration
@@ -265,7 +266,7 @@ func (d *Database) AddModel(model *Model) error {
 
 	deckConfJSON, err := json.Marshal(deckConf)
 	if err != nil {
-		return fmt.Errorf("failed to marshal deck config: %v", err)
+		return nil, fmt.Errorf("failed to marshal deck config: %v", err)
 	}
 
 	// First, check if the collection table exists and has data
@@ -299,13 +300,13 @@ func (d *Database) AddModel(model *Model) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to update models: %v", err)
+		return nil, fmt.Errorf("failed to update models: %v", err)
 	}
 
-	return nil
+	return d, nil
 }
 
-func (d *Database) AddDeck(deck *Deck) error {
+func (d *Database) AddDeck(deck *Deck) (*Database, error) {
 	deckConfig := map[string]interface{}{
 		"id":               deck.ID,
 		"mod":              time.Now().Unix(),
@@ -327,7 +328,7 @@ func (d *Database) AddDeck(deck *Deck) error {
 	var decksJSON string
 	err := d.db.QueryRow("SELECT decks FROM col WHERE id = 1").Scan(&decksJSON)
 	if err != nil {
-		return fmt.Errorf("failed to read decks: %v", err)
+		return nil, fmt.Errorf("failed to read decks: %v", err)
 	}
 
 	var decks map[string]interface{}
@@ -339,17 +340,20 @@ func (d *Database) AddDeck(deck *Deck) error {
 
 	newDecksJSON, err := json.Marshal(decks)
 	if err != nil {
-		return fmt.Errorf("failed to marshal decks: %v", err)
+		return nil, fmt.Errorf("failed to marshal decks: %v", err)
 	}
 
 	_, err = d.db.Exec("UPDATE col SET decks = ? WHERE id = 1", string(newDecksJSON))
-	return err
+	if err != nil {
+		return nil, err
+	}
+	return d, nil
 }
 
-func (d *Database) AddNote(note *Note) error {
+func (d *Database) AddNote(note *Note) (*Database, error) {
 	tagsJSON, err := json.Marshal(note.Tags)
 	if err != nil {
-		return fmt.Errorf("failed to marshal tags: %v", err)
+		return nil, fmt.Errorf("failed to marshal tags: %v", err)
 	}
 
 	fields := make([]byte, 0)
@@ -373,7 +377,7 @@ func (d *Database) AddNote(note *Note) error {
 	}
 	noteDataJSON, err := json.Marshal(noteData)
 	if err != nil {
-		return fmt.Errorf("failed to marshal note data: %v", err)
+		return nil, fmt.Errorf("failed to marshal note data: %v", err)
 	}
 
 	log.Printf("Note fields string: %q", fieldsStr)
@@ -396,20 +400,20 @@ func (d *Database) AddNote(note *Note) error {
 	)
 
 	if err != nil {
-		return fmt.Errorf("failed to insert note: %v", err)
+		return nil, fmt.Errorf("failed to insert note: %v", err)
 	}
 
 	var verifyFields string
 	err = d.db.QueryRow("SELECT flds FROM notes WHERE id = ?", note.ID).Scan(&verifyFields)
 	if err != nil {
-		return fmt.Errorf("failed to verify note: %v", err)
+		return nil, fmt.Errorf("failed to verify note: %v", err)
 	}
 
 	log.Printf("Verified note fields: %q", verifyFields)
-	return nil
+	return d, nil
 }
 
-func (d *Database) AddCard(noteID, deckID int64, templateOrd int) error {
+func (d *Database) AddCard(noteID, deckID int64, templateOrd int) (*Database, error) {
 	now := time.Now().Unix()
 	_, err := d.db.Exec(`
 		INSERT INTO cards (id, nid, did, ord, mod, usn, type, queue, due, ivl, factor, reps, lapses, left, odue, odid, flags, data)
@@ -435,7 +439,11 @@ func (d *Database) AddCard(noteID, deckID int64, templateOrd int) error {
 		"{}",
 	)
 
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	return d, nil
 }
 
 func (d *Database) Close() error {

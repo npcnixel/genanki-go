@@ -53,10 +53,66 @@ func main() {
 		"Basic",
 	)
 
+	// Customize the basic model with CSS using method chaining
+	basicModel.Model.SetCSS(`
+		.card {
+			font-family: "Helvetica Neue", Arial, sans-serif;
+			font-size: 18px;
+			text-align: center;
+			color: #333;
+			background-color: #f5f5f5;
+			line-height: 1.5;
+			padding: 20px;
+			max-width: 600px;
+			margin: 0 auto;
+			border-radius: 8px;
+			box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+		}
+		.question {
+			font-weight: bold;
+			color: #2c3e50;
+			margin-bottom: 20px;
+		}
+		img {
+			max-width: 100%;
+			border-radius: 4px;
+			margin: 10px auto;
+			display: block;
+		}
+	`).AddField(genanki.Field{
+		Name:  "Source",
+		Ord:   2,
+		Font:  "Arial",
+		Size:  14,
+		Color: "#666666",
+	})
+
 	clozeModel := genanki.NewClozeModel(
 		0, // Auto-generate ID
 		"Cloze",
 	)
+
+	// Customize the cloze model with CSS
+	clozeModel.Model.SetCSS(`
+		.card {
+			font-family: "Helvetica Neue", Arial, sans-serif;
+			font-size: 18px;
+			text-align: center;
+			color: #333;
+			background-color: #f0f7ff;
+			line-height: 1.5;
+			padding: 20px;
+			max-width: 600px;
+			margin: 0 auto;
+		}
+		.cloze {
+			font-weight: bold;
+			color: #2980b9;
+		}
+		.nightMode .cloze {
+			color: #5dade2;
+		}
+	`)
 
 	// Create a deck - using auto-generated ID
 	deck := genanki.NewDeck(
@@ -76,6 +132,7 @@ func main() {
 		[]string{
 			"What is the capital of France?",
 			"Paris",
+			"Geography textbook",
 		},
 		[]string{"geography", "europe"},
 	)
@@ -85,6 +142,7 @@ func main() {
 		[]string{
 			"What is the largest planet in our solar system?",
 			"Jupiter",
+			"Astronomy class notes",
 		},
 		[]string{"astronomy", "planets"},
 	)
@@ -94,6 +152,7 @@ func main() {
 		[]string{
 			"What does this image show?<br><img src='istockphoto-1263636227-612x612.jpg'>",
 			"A stock photo",
+			"Stock image library",
 		},
 		[]string{"images", "examples"},
 	)
@@ -104,6 +163,7 @@ func main() {
 		[]string{
 			"What does this represent?<br><img src='sample_image.png'>",
 			"A generated image",
+			"Generated during import",
 		},
 		[]string{"images", "examples", "generated"},
 	)
@@ -127,19 +187,23 @@ func main() {
 		[]string{"astronomy", "planets"},
 	)
 
-	// Add notes to deck
-	notes := []*genanki.Note{basicNote1, basicNote2, basicNote3, basicNote4, clozeNote1, clozeNote2}
-	for _, note := range notes {
-		deck.AddNote(note)
+	// Add notes to deck using method chaining
+	deck.AddNote(basicNote1).
+		AddNote(basicNote2).
+		AddNote(basicNote3).
+		AddNote(basicNote4).
+		AddNote(clozeNote1).
+		AddNote(clozeNote2)
+
+	// Log the notes that were added
+	for _, note := range deck.Notes {
 		log.Printf("Added note with fields: %q", strings.Join(note.Fields, "\u001f"))
 	}
 
-	// Create package
-	pkg := genanki.NewPackage([]*genanki.Deck{deck})
-
-	// Add models to package
-	pkg.AddModel(basicModel.Model)
-	pkg.AddModel(clozeModel.Model)
+	// Create package and add models using method chaining
+	pkg := genanki.NewPackage([]*genanki.Deck{deck}).
+		AddModel(basicModel.Model).
+		AddModel(clozeModel.Model)
 
 	// Add the user's image file
 	userImagePath := "istockphoto-1263636227-612x612.jpg"

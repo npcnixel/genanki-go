@@ -9,6 +9,7 @@ A Go library for generating Anki decks programmatically.
 - Add media files (images, audio, video)
 - Generate `.apkg` files for Anki import
 - Simple and intuitive API
+- **Method chaining for more fluent API usage**
 
 ## Installation
 
@@ -24,34 +25,41 @@ Here's a simple example of creating a basic Anki deck:
 package main
 
 import (
-    "github.com/npcnixel/genanki-go"
+	"fmt"
+	"os"
+
+	"github.com/npcnixel/genanki-go"
 )
 
 func main() {
-    // Create a basic model
-    model := genanki.StandardBasicModel("My Model")
+	// Create a basic model and deck
+	model := genanki.StandardBasicModel("My Model")
+	deck := genanki.StandardDeck("My Deck", "A deck for testing")
 
-    // Create a deck
-    deck := genanki.StandardDeck("My Deck", "A deck for testing")
+	// Add notes to the deck using method chaining
+	deck.
+		AddNote(
+			genanki.NewNote(
+				model.ID,
+				[]string{"What is the capital of France?", "Paris"},[]string{"geography"},
+			),
+		).
+		AddNote(
+			genanki.NewNote(
+				model.ID,
+				[]string{"What is 2+2?", "4"}, []string{"math"},
+			),
+		)
 
-    // Create a note
-    note := genanki.NewNote(model.ID, []string{"What is the capital of France?", "Paris"}, []string{"geography"})
-    
-    // Add note to deck
-    deck.AddNote(note)
-    
-    // Create a package with the deck
-    pkg := genanki.NewPackage([]*genanki.Deck{deck})
-    
-    // Add the model to the package
-    pkg.AddModel(model.Model)
-    
-    // Write the package to a file
-    pkg.WriteToFile("output.apkg")
+	// Create and write package
+	pkg := genanki.NewPackage([]*genanki.Deck{deck}).AddModel(model.Model)
+	if err := pkg.WriteToFile("output.apkg"); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("Successfully created Anki deck: output.apkg")
 }
 ```
-
-<br>
 
 <details>
 <summary><h2 style="display: inline-block">Advanced Usage</h2></summary>
@@ -69,6 +77,42 @@ clozeModel := genanki.StandardClozeModel("Cloze Model")
 deck := genanki.StandardDeck("My Deck", "A deck for testing")
 ```
 
+### Customizing Models
+
+```go
+// Create a model
+model := genanki.StandardBasicModel("Custom Model")
+
+// Customize the model (each method call separately)
+model.Model.SetCSS(`
+    .card { 
+        font-family: Arial; 
+        font-size: 20px;
+        text-align: center;
+        color: #333;
+        background-color: #f5f5f5;
+    }
+    .question { 
+        font-weight: bold; 
+        color: navy;
+    }
+`)
+
+model.Model.AddField(genanki.Field{
+    Name: "Extra Info", 
+    Font: "Arial",
+    Size: 16,
+})
+
+basicModel.Model.SetCSS(`...`).AddField(genanki.Field{
+    Name:  "Source",
+    Ord:   2,
+    Font:  "Arial",
+    Size:  14,
+    Color: "#666666",
+})
+```
+
 ### Adding Media Files
 
 ```go
@@ -79,12 +123,11 @@ pkg := genanki.NewPackage([]*genanki.Deck{deck})
 pkg.AddModel(basicModel.Model)
 pkg.AddModel(clozeModel.Model)
 
-// Add an image file
-imageData, _ := ioutil.ReadFile("image.jpg")
+// Add media files
+imageData, _ := os.ReadFile("image.jpg")
 pkg.AddMedia("image.jpg", imageData)
 
-// Add an audio file
-audioData, _ := ioutil.ReadFile("audio.mp3")
+audioData, _ := os.ReadFile("audio.mp3")
 pkg.AddMedia("audio.mp3", audioData)
 ```
 

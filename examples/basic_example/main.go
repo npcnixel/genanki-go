@@ -10,18 +10,11 @@ import (
 )
 
 func main() {
-	// Create a basic model with auto-generated ID
-	basicModel := genanki.NewBasicModel(
-		0, // Auto-generate ID
-		"Basic",
-	)
+	// Create a basic model with auto-generated ID using convenience function
+	basicModel := genanki.StandardBasicModel("Basic")
 
-	// Create a new deck with auto-generated ID
-	deck := genanki.NewDeck(
-		0, // Auto-generate ID
-		"Test Deck",
-		"A test deck",
-	)
+	// Create a new deck with auto-generated ID using convenience function
+	deck := genanki.StandardDeck("Test Deck", "A test deck")
 
 	// Print the generated IDs for reference
 	fmt.Printf("Generated Basic Model ID: %d\n", basicModel.ID)
@@ -30,21 +23,15 @@ func main() {
 	// Create a note
 	note := genanki.NewNote(
 		basicModel.ID,
-		[]string{
-			"What is 2+2?",
-			"4",
-		},
+		[]string{"What is 2+2?", "4"},
 		[]string{"math", "basic"},
 	)
 
-	// Add note to the deck
+	// Add note to the deck using chaining
 	deck.AddNote(note)
 
-	// Create a package
-	pkg := genanki.NewPackage([]*genanki.Deck{deck})
-
-	// Add models to the package
-	pkg.AddModel(basicModel.Model)
+	// Create a package with the deck using chaining
+	pkg := genanki.NewPackage([]*genanki.Deck{deck}).AddModel(basicModel.Model)
 
 	// Ensure output directory exists at same level as example directories
 	outputDir := filepath.Join("..", "output")
@@ -58,6 +45,7 @@ func main() {
 		log.Fatalf("Failed to write package: %v", err)
 	}
 
+	// Print summary information
 	fmt.Printf("Successfully created Anki deck: %s\n", outputPath)
 	fmt.Printf("Number of notes: %d\n", len(deck.Notes))
 }
