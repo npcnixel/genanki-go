@@ -10,6 +10,7 @@ A Go library for generating Anki decks programmatically.
 - Generate `.apkg` files for Anki import
 - Simple and intuitive API
 - **Method chaining for more fluent API usage**
+- **Cross-platform compatibility** (works with `CGO_ENABLED=0`)
 
 ## Installation
 
