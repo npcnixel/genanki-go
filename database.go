@@ -9,8 +9,35 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // CGO-dependent SQLite driver
+	_ "modernc.org/sqlite"          // Pure Go SQLite driver
 )
+
+// openSQLite opens a SQLite database with fallback support from CGO to pure Go
+func openSQLite(path string) (*sql.DB, error) {
+	// Try mattn/go-sqlite3 first (requires CGO)
+	db, err := sql.Open("sqlite3", path)
+	if err == nil && db.Ping() == nil {
+		return db, nil
+	}
+
+	// If that fails, try modernc.org/sqlite (pure Go)
+	if db != nil {
+		db.Close()
+	}
+
+	db, err = sql.Open("sqlite", path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %v", err)
+	}
+
+	if err = db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to connect to database: %v", err)
+	}
+
+	return db, nil
+}
 
 type Database struct {
 	db *sql.DB
@@ -18,9 +45,9 @@ type Database struct {
 
 // newDatabase creates a new in-memory database instance
 func newDatabase() (*Database, error) {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := openSQLite(":memory:")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %v", err)
+		return nil, err
 	}
 
 	pragmas := []string{
@@ -515,9 +542,10 @@ func (d *Database) GetFilePath() (string, error) {
 }
 
 func (d *Database) backupToFile(path string) error {
-	destDB, err := sql.Open("sqlite3", path)
+	// Create the destination database file
+	destDB, err := openSQLite(path)
 	if err != nil {
-		return fmt.Errorf("failed to open destination database: %v", err)
+		return err
 	}
 	defer destDB.Close()
 

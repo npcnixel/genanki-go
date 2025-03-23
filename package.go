@@ -9,7 +9,8 @@ import (
 	"os"
 	"strings"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // CGO-dependent SQLite driver
+	_ "modernc.org/sqlite"          // Pure Go SQLite driver
 )
 
 type Package struct {

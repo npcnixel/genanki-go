@@ -10,6 +10,7 @@ A Go library for generating Anki decks programmatically.
 - Generate `.apkg` files for Anki import
 - Simple and intuitive API
 - **Method chaining for more fluent API usage**
+- **Cross-platform compatibility** (works with `CGO_ENABLED=0`)
 
 ## Installation
 
@@ -141,6 +142,16 @@ note := genanki.NewNote(clozeModel.ID, []string{
 }, []string{"geography"})
 ```
 </details>
+
+## Cross-Platform Support
+
+This library works seamlessly across different platforms, including Windows with `CGO_ENABLED=0`, by using a smart driver selection approach:
+
+- On systems with CGO enabled, it uses the high-performance `github.com/mattn/go-sqlite3` driver
+- On systems where CGO is disabled (like Windows by default), it automatically falls back to the pure Go `modernc.org/sqlite` driver
+- This ensures your code works the same way regardless of platform without any changes needed
+
+Example usage is identical across all platforms - just import the library and use it as shown in the examples above.
 
 ## Contributing
 
