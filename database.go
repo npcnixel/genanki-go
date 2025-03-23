@@ -13,29 +13,41 @@ import (
 	_ "modernc.org/sqlite"          // Pure Go SQLite driver
 )
 
+// openSQLite opens a SQLite database with fallback support from CGO to pure Go
+func openSQLite(path string) (*sql.DB, error) {
+	// Try mattn/go-sqlite3 first (requires CGO)
+	db, err := sql.Open("sqlite3", path)
+	if err == nil && db.Ping() == nil {
+		return db, nil
+	}
+
+	// If that fails, try modernc.org/sqlite (pure Go)
+	if db != nil {
+		db.Close()
+	}
+
+	db, err = sql.Open("sqlite", path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %v", err)
+	}
+
+	if err = db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to connect to database: %v", err)
+	}
+
+	return db, nil
+}
+
 type Database struct {
 	db *sql.DB
 }
 
 // newDatabase creates a new in-memory database instance
 func newDatabase() (*Database, error) {
-	// Try with mattn/go-sqlite3 first (requires CGO)
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil || db.Ping() != nil {
-		// If that fails, try with modernc.org/sqlite (pure Go)
-		if db != nil {
-			db.Close()
-		}
-
-		db, err = sql.Open("sqlite", ":memory:")
-		if err != nil {
-			return nil, fmt.Errorf("failed to open database: %v", err)
-		}
-
-		if err = db.Ping(); err != nil {
-			db.Close()
-			return nil, fmt.Errorf("failed to connect to database: %v", err)
-		}
+	db, err := openSQLite(":memory:")
+	if err != nil {
+		return nil, err
 	}
 
 	pragmas := []string{
@@ -531,22 +543,9 @@ func (d *Database) GetFilePath() (string, error) {
 
 func (d *Database) backupToFile(path string) error {
 	// Create the destination database file
-	destDB, err := sql.Open("sqlite3", path)
-	if err != nil || destDB.Ping() != nil {
-		// If that fails, try with modernc.org/sqlite (pure Go)
-		if destDB != nil {
-			destDB.Close()
-		}
-
-		destDB, err = sql.Open("sqlite", path)
-		if err != nil {
-			return fmt.Errorf("failed to create destination database: %v", err)
-		}
-
-		if err = destDB.Ping(); err != nil {
-			destDB.Close()
-			return fmt.Errorf("failed to connect to destination database: %v", err)
-		}
+	destDB, err := openSQLite(path)
+	if err != nil {
+		return err
 	}
 	defer destDB.Close()
 
