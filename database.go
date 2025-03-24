@@ -13,7 +13,8 @@ import (
 )
 
 type Database struct {
-	db *sql.DB
+	db    *sql.DB
+	debug bool
 }
 
 // newDatabase creates a new in-memory database instance
@@ -40,13 +41,19 @@ func newDatabase() (*Database, error) {
 		}
 	}
 
-	d := &Database{db: db}
+	d := &Database{db: db, debug: false}
 	if err := d.initialize(); err != nil {
 		db.Close()
 		return nil, err
 	}
 
 	return d, nil
+}
+
+// SetDebug enables or disables debug logging
+func (d *Database) SetDebug(debug bool) *Database {
+	d.debug = debug
+	return d
 }
 
 func (d *Database) initialize() error {
@@ -380,7 +387,9 @@ func (d *Database) AddNote(note *Note) (*Database, error) {
 		return nil, fmt.Errorf("failed to marshal note data: %v", err)
 	}
 
-	log.Printf("Note fields string: %q", fieldsStr)
+	if d.debug {
+		log.Printf("Note fields string: %q", fieldsStr)
+	}
 
 	_, err = d.db.Exec(`
 		INSERT INTO notes (id, guid, mid, mod, usn, tags, flds, sfld, csum, flags, data)
@@ -409,7 +418,9 @@ func (d *Database) AddNote(note *Note) (*Database, error) {
 		return nil, fmt.Errorf("failed to verify note: %v", err)
 	}
 
-	log.Printf("Verified note fields: %q", verifyFields)
+	if d.debug {
+		log.Printf("Verified note fields: %q", verifyFields)
+	}
 	return d, nil
 }
 
@@ -456,7 +467,9 @@ func (d *Database) VerifyContent() error {
 	if err != nil {
 		return fmt.Errorf("failed to count notes: %v", err)
 	}
-	log.Printf("Number of notes in database: %d", noteCount)
+	if d.debug {
+		log.Printf("Number of notes in database: %d", noteCount)
+	}
 
 	rows, err := d.db.Query("SELECT id, flds FROM notes")
 	if err != nil {
@@ -470,7 +483,9 @@ func (d *Database) VerifyContent() error {
 		if err := rows.Scan(&id, &fields); err != nil {
 			return fmt.Errorf("failed to scan note: %v", err)
 		}
-		log.Printf("Note %d fields: %q", id, fields)
+		if d.debug {
+			log.Printf("Note %d fields: %q", id, fields)
+		}
 	}
 
 	var cardCount int
@@ -478,7 +493,9 @@ func (d *Database) VerifyContent() error {
 	if err != nil {
 		return fmt.Errorf("failed to count cards: %v", err)
 	}
-	log.Printf("Number of cards in database: %d", cardCount)
+	if d.debug {
+		log.Printf("Number of cards in database: %d", cardCount)
+	}
 
 	var modelsJSON, decksJSON string
 	err = d.db.QueryRow("SELECT models, decks FROM col WHERE id = 1").Scan(&modelsJSON, &decksJSON)
@@ -494,8 +511,10 @@ func (d *Database) VerifyContent() error {
 		return fmt.Errorf("failed to unmarshal decks: %v", err)
 	}
 
-	log.Printf("Number of models in collection: %d", len(models))
-	log.Printf("Number of decks in collection: %d", len(decks))
+	if d.debug {
+		log.Printf("Number of models in collection: %d", len(models))
+		log.Printf("Number of decks in collection: %d", len(decks))
+	}
 
 	return nil
 }

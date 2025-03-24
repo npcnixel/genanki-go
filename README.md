@@ -10,6 +10,7 @@ A Go library for generating Anki decks programmatically.
 - Generate `.apkg` files for Anki import
 - Simple and intuitive API
 - **Method chaining for more fluent API usage**
+- Optional debug logging for troubleshooting
 
 ## Installation
 
@@ -60,6 +61,27 @@ func main() {
 	fmt.Println("Successfully created Anki deck: output.apkg")
 }
 ```
+
+### Debug Logging
+
+To enable debug logging, you can set the `DEBUG` environment variable to `true`:
+
+```bash
+DEBUG=true go run main.go
+```
+
+Or programmatically:
+
+```go
+pkg := genanki.NewPackage([]*genanki.Deck{deck}).AddModel(model.Model)
+pkg.SetDebug(true)  // Enable debug logging
+```
+
+Debug logging will show detailed information about the database operations, including:
+- Number of notes and cards
+- Note field contents
+- Number of models and decks
+- Database verification steps
 
 <details>
 <summary><h2 style="display: inline-block">Advanced Usage</h2></summary>

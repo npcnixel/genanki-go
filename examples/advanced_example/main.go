@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -47,6 +48,16 @@ func generateSampleImage() ([]byte, error) {
 }
 
 func main() {
+	// Parse command line flags
+	debugFlag := flag.Bool("debug", false, "Enable debug logging")
+	flag.Parse()
+
+	// Enable debug logging if either flag or environment variable is set
+	debug := *debugFlag || strings.ToLower(os.Getenv("DEBUG")) == "true"
+	if debug {
+		log.Printf("Debug mode enabled")
+	}
+
 	// Create models - using auto-generated IDs
 	basicModel := genanki.NewBasicModel(
 		0, // Auto-generate ID
@@ -195,15 +206,18 @@ func main() {
 		AddNote(clozeNote1).
 		AddNote(clozeNote2)
 
-	// Log the notes that were added
-	for _, note := range deck.Notes {
-		log.Printf("Added note with fields: %q", strings.Join(note.Fields, "\u001f"))
+	// Log the notes that were added only in debug mode
+	if debug {
+		for _, note := range deck.Notes {
+			log.Printf("Added note with fields: %q", strings.Join(note.Fields, "\u001f"))
+		}
 	}
 
 	// Create package and add models using method chaining
 	pkg := genanki.NewPackage([]*genanki.Deck{deck}).
 		AddModel(basicModel.Model).
-		AddModel(clozeModel.Model)
+		AddModel(clozeModel.Model).
+		SetDebug(debug)
 
 	// Add the user's image file
 	userImagePath := "istockphoto-1263636227-612x612.jpg"

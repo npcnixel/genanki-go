@@ -13,10 +13,12 @@ import (
 )
 
 type Package struct {
-	decks  []*Deck
-	models []*Model
-	media  map[string][]byte
-	db     *Database
+	decks    []*Deck
+	models   []*Model
+	media    map[string][]byte
+	db       *Database
+	newNotes []*Note // Track newly added notes
+	debug    bool
 }
 
 // NewPackage creates a new package from decks or a database
@@ -24,20 +26,33 @@ func NewPackage(data interface{}) *Package {
 	switch v := data.(type) {
 	case []*Deck:
 		return &Package{
-			decks:  v,
-			models: make([]*Model, 0),
-			media:  make(map[string][]byte),
+			decks:    v,
+			models:   make([]*Model, 0),
+			media:    make(map[string][]byte),
+			newNotes: make([]*Note, 0),
+			debug:    false,
 		}
 	case *Database:
 		return &Package{
-			db:     v,
-			decks:  make([]*Deck, 0),
-			models: make([]*Model, 0),
-			media:  make(map[string][]byte),
+			db:       v,
+			decks:    make([]*Deck, 0),
+			models:   make([]*Model, 0),
+			media:    make(map[string][]byte),
+			newNotes: make([]*Note, 0),
+			debug:    v.debug,
 		}
 	default:
 		panic("NewPackage: unsupported type")
 	}
+}
+
+// SetDebug enables or disables debug logging
+func (p *Package) SetDebug(debug bool) *Package {
+	p.debug = debug
+	if p.db != nil {
+		p.db.SetDebug(debug)
+	}
+	return p
 }
 
 // AddModel adds a model to the package
@@ -67,6 +82,9 @@ func (p *Package) WriteToFile(path string) error {
 		}
 		defer dbToUse.Close()
 
+		// Set debug flag on the new database
+		dbToUse.SetDebug(p.debug)
+
 		// Add all models
 		for _, model := range p.models {
 			var modelErr error
@@ -91,6 +109,7 @@ func (p *Package) WriteToFile(path string) error {
 				if noteErr != nil {
 					return fmt.Errorf("failed to add note to database: %v", noteErr)
 				}
+				p.newNotes = append(p.newNotes, note)
 
 				// Add a card for each note
 				var cardErr error
@@ -160,6 +179,18 @@ func (p *Package) WriteToFile(path string) error {
 	}
 	if _, err := w3.Write(mediaJSON); err != nil {
 		return fmt.Errorf("failed to write media: %v", err)
+	}
+
+	// Print summary information
+	if !p.debug {
+		if p.db != nil {
+			// Using existing database
+			fmt.Printf("Successfully updated Anki package: %s\n", path)
+		} else {
+			// New package
+			fmt.Printf("Successfully created Anki package: %s\n", path)
+			fmt.Printf("Added %d new notes\n", len(p.newNotes))
+		}
 	}
 
 	return nil
