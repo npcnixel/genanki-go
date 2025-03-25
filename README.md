@@ -166,7 +166,7 @@ note := genanki.NewNote(clozeModel.ID, []string{
 
 ## Windows Support
 
-For Windows platforms, you can use this branch
+For Windows platform, you can use this branch
 * dev/feature-enable-windows-compatibility
 
 ## Contributing
