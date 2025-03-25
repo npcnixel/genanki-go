@@ -68,6 +68,8 @@ To enable debug logging, you can set the `DEBUG` environment variable to `true`:
 
 ```bash
 DEBUG=true go run main.go
+OR 
+go run main.go -debug
 ```
 
 Or programmatically:
