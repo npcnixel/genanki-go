@@ -168,7 +168,7 @@ func (d *Database) AddModel(model *Model) (*Database, error) {
 		"did":               1, // Default deck ID
 		"vers":              []interface{}{},
 		"tags":              []interface{}{},
-		"css":               ".card {\n font-family: arial;\n font-size: 20px;\n text-align: center;\n color: black;\n background-color: white;\n}\n",
+		"css":               model.CSS,
 		"latexPre":          "\\documentclass[12pt]{article}\n\\special{papersize=3in,5in}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amssymb,amsmath}\n\\pagestyle{empty}\n\\setlength{\\parindent}{0in}\n\\begin{document}\n",
 		"latexPost":         "\\end{document}",
 		"latexsvg":          false,
