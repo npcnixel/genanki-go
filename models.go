@@ -58,7 +58,7 @@ type Deck struct {
 func GenerateIntID() int64 {
 	var b [8]byte
 	rand.Read(b[:])
-	return int64(binary.LittleEndian.Uint64(b[:])) % math.MaxInt64
+	return int64(binary.LittleEndian.Uint64(b[:]) & math.MaxInt64)
 }
 
 func NewModel(id int64, name string) *Model {
