@@ -358,10 +358,7 @@ func (d *Database) AddDeck(deck *Deck) (*Database, error) {
 }
 
 func (d *Database) AddNote(note *Note) (*Database, error) {
-	tagsJSON, err := json.Marshal(note.Tags)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal tags: %v", err)
-	}
+	tags := formatAnkiTags(note.Tags)
 
 	fields := make([]byte, 0)
 	for i, field := range note.Fields {
@@ -400,7 +397,7 @@ func (d *Database) AddNote(note *Note) (*Database, error) {
 		note.ModelID,
 		note.Modified.Unix(),
 		-1,
-		string(tagsJSON),
+		tags,
 		fieldsStr,
 		note.Fields[0],
 		csum,
@@ -422,6 +419,21 @@ func (d *Database) AddNote(note *Note) (*Database, error) {
 		log.Printf("Verified note fields: %q", verifyFields)
 	}
 	return d, nil
+}
+
+func formatAnkiTags(tags []string) string {
+	if len(tags) == 0 {
+		return ""
+	}
+
+	normalized := make([]string, len(tags))
+	for i, tag := range tags {
+		normalized[i] = strings.Join(strings.Fields(strings.TrimSpace(tag)), "_")
+	}
+
+	joined := strings.Join(normalized, " ")
+
+	return " " + joined + " "
 }
 
 func (d *Database) AddCard(noteID, deckID int64, templateOrd int) (*Database, error) {
