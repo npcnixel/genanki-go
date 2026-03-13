@@ -164,6 +164,32 @@ note := genanki.NewNote(clozeModel.ID, []string{
     "The capital of Spain is {{c1::Madrid}}.",
 }, []string{"geography"})
 ```
+
+### Generating Deterministic `id` and `guid`s
+
+This enables you to push updates to the decks.
+
+Note that the `guid` for a note is supposed to be unique across the entire collection. Therefore, it is recommended to prefix whatever string you want to hash with the model id or some other namespace.
+
+```go
+modelId := 1234567890
+modelName := "Test Model"
+model := genanki.NewBasicModel(modelId, modelName).Model
+questionId := 1
+
+note := genanki.NewNote(
+	model.ID,
+	[]string{
+		"Question",
+		"Answer",
+	},
+	[]string{},
+)
+
+noteIdBase := fmt.Sprintf("%d_%d", model.ID, questionId)
+note.ID = genanki.GenerateIntID(noteIdBase)
+```
+
 </details>
 
 ## Windows Support

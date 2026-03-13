@@ -2,6 +2,7 @@ package genanki
 
 import (
 	"crypto/rand"
+	"crypto/sha1"
 	"encoding/binary"
 	"math"
 	"time"
@@ -55,10 +56,15 @@ type Deck struct {
 	Modified time.Time
 }
 
-func GenerateIntID() int64 {
+func GenerateIntID(s ...string) int64 {
 	var b [8]byte
-	rand.Read(b[:])
-	return int64(binary.LittleEndian.Uint64(b[:]) & math.MaxInt64)
+	if len(s) == 0 {
+		rand.Read(b[:])
+	} else {
+		h := sha1.Sum([]byte(s[0]))
+		copy(b[:], h[:8])
+	}
+	return int64(binary.BigEndian.Uint64(b[:])) & math.MaxInt64
 }
 
 func NewModel(id int64, name string) *Model {
