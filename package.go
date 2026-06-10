@@ -111,11 +111,20 @@ func (p *Package) WriteToFile(path string) error {
 				}
 				p.newNotes = append(p.newNotes, note)
 
-				// Add a card for each note
-				var cardErr error
-				dbToUse, cardErr = dbToUse.AddCard(note.ID, deck.ID, 0)
-				if cardErr != nil {
-					return fmt.Errorf("failed to add card to database: %v", cardErr)
+				// Add a card for each template in the note's model
+				numTemplates := 1
+				for _, m := range p.models {
+					if m.ID == note.ModelID {
+						numTemplates = len(m.Templates)
+						break
+					}
+				}
+				for ord := 0; ord < numTemplates; ord++ {
+					var cardErr error
+					dbToUse, cardErr = dbToUse.AddCard(note.ID, deck.ID, ord)
+					if cardErr != nil {
+						return fmt.Errorf("failed to add card (ord %d) to database: %v", ord, cardErr)
+					}
 				}
 			}
 

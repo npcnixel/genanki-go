@@ -172,7 +172,7 @@ func (d *Database) AddModel(model *Model) (*Database, error) {
 		"latexPre":          "\\documentclass[12pt]{article}\n\\special{papersize=3in,5in}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amssymb,amsmath}\n\\pagestyle{empty}\n\\setlength{\\parindent}{0in}\n\\begin{document}\n",
 		"latexPost":         "\\end{document}",
 		"latexsvg":          false,
-		"req":               []interface{}{[]interface{}{0, "all", []interface{}{0}}},
+		"req":               buildReq(model),
 		"flds":              getFieldsConfig(model),
 		"tmpls":             getTemplatesConfig(model),
 		"originalStockKind": 1,
@@ -693,4 +693,12 @@ func getTemplatesConfig(model *Model) []map[string]interface{} {
 	}
 
 	return templates
+}
+
+func buildReq(model *Model) []interface{} {
+	req := make([]interface{}, len(model.Templates))
+	for i := range model.Templates {
+		req[i] = []interface{}{i, "all", []interface{}{i}}
+	}
+	return req
 }
