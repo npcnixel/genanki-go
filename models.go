@@ -43,6 +43,7 @@ type Note struct {
 	Modified  time.Time
 	SortField string
 	CheckSum  int64
+	Due       int64
 }
 
 type Deck struct {

@@ -113,7 +113,7 @@ func (p *Package) WriteToFile(path string) error {
 
 				// Add a card for each note
 				var cardErr error
-				dbToUse, cardErr = dbToUse.AddCard(note.ID, deck.ID, 0)
+				dbToUse, cardErr = dbToUse.AddCardWithDue(note.ID, deck.ID, note.Due, 0)
 				if cardErr != nil {
 					return fmt.Errorf("failed to add card to database: %v", cardErr)
 				}
